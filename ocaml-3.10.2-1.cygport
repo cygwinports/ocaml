@@ -1,0 +1,59 @@
+DESCRIPTION="Objective Caml interpreter"
+HOMEPAGE="http://caml.inria.fr/ocaml/"
+SRC_URI="http://caml.inria.fr/pub/distrib/ocaml-${PV_MAJ_MIN}/${P}.tar.bz2"
+PATCH_URI="mirror://portage/dev-lang/${PN}/files/${PN}-3.10.0-configure.patch
+		   mirror://portage/dev-lang/${PN}/files/${PN}-3.10.0-call-ld-with-proper-ldflags.patch"
+
+OCAML_LIBDIR=/usr/lib/ocaml/${PV_MAJ_MIN}
+
+PKG_NAMES="${PN} ${PN}-camlp4 ${PN}-labltk"
+PKG_HINTS="setup camlp4 labltk"
+PKG_CONTENTS[0]="--exclude=*camlp4* --exclude=labltk --exclude=dll*tk*.so usr/"
+PKG_CONTENTS[1]="usr/bin/*camlp4* ${OCAML_LIBDIR#/}/camlp4/"
+PKG_CONTENTS[2]="usr/bin/labltk ${OCAML_LIBDIR#/}/labltk/
+                 ${OCAML_LIBDIR#/}/stublibs/dll*tk*.so"
+
+src_compile() {
+	lndirs
+	cd ${B}
+	./configure \
+		--prefix /usr \
+		--bindir /usr/bin \
+		--libdir ${OCAML_LIBDIR} \
+		--mandir /usr/share/man \
+		--with-pthread \
+		|| error "configure failed"
+	cygmake -j1 world opt opt.opt
+	cygmake -C emacs ocamltags
+}
+
+src_test() { :; }
+
+src_install() {
+	cd ${B}
+	cyginstall -j1 \
+		BINDIR=${D}/usr/bin \
+		LIBDIR=${D}${OCAML_LIBDIR} \
+		MANDIR=${D}/usr/share/man
+
+	cygmake -j1 -C emacs install-ocamltags simple-install \
+		BINDIR=${D}/usr/bin \
+		EMACSDIR=${D}/usr/share/emacs/site-lisp \
+		NOCOMPILE=true
+
+	# Install the compiler libs
+	insinto ${OCAML_LIBDIR}/compiler-libs
+	doins {utils,typing,parsing}/*.{mli,cmi,cmo,cmx,o}
+
+	# Symlink the headers to the right place
+	dodir /usr/include
+	dosym ../${OCAML_LIBDIR#/usr/}/caml /usr/include/caml
+
+	# Remove ${D} from ld.conf, as the buildsystem isn't $(DESTDIR) aware
+	sed -i -e "s:${D}::g" ${D}${OCAML_LIBDIR}/ld.conf
+
+	dodoc Updating
+
+	# These are false positives with the 'Caml1999X008' file magic test
+	strip ${D}/usr/bin/*.{dll,opt.exe}
+}

@@ -1,0 +1,263 @@
+--- origsrc/ocaml-3.10.2/Makefile	2008-05-02 07:01:39.750000000 -0500
++++ src/ocaml-3.10.2/Makefile	2008-05-02 07:02:00.437500000 -0500
+@@ -168,12 +168,15 @@
+ coldstart:
+ 	cd byterun; $(MAKE) all
+ 	cp byterun/ocamlrun$(EXE) boot/ocamlrun$(EXE)
++	cp byterun/cygcamlrun.dll boot/cygcamlrun.dll
+ 	cd yacc; $(MAKE) all
+ 	cp yacc/ocamlyacc$(EXE) boot/ocamlyacc$(EXE)
+ 	cd stdlib; $(MAKE) COMPILER=../boot/ocamlc all
+ 	cd stdlib; cp $(LIBFILES) ../boot
+ 	if test -f boot/libcamlrun.a; then :; else \
+           ln -s ../byterun/libcamlrun.a boot/libcamlrun.a; fi
++	if test -f boot/libcamlrun.dll.a; then :; else \
++          ln -s ../byterun/libcamlrun.dll.a boot/libcamlrun.dll.a; fi
+ 	if test -d stdlib/caml; then :; else \
+           ln -s ../byterun stdlib/caml; fi
+ 
+--- origsrc/ocaml-3.10.2/bytecomp/bytelink.ml	2006-09-28 16:36:38.000000000 -0500
++++ src/ocaml-3.10.2/bytecomp/bytelink.ml	2008-05-02 07:02:00.453125000 -0500
+@@ -433,7 +433,7 @@
+     "cc" ->
+       Ccomp.command
+        (Printf.sprintf
+-          "%s -o %s %s %s %s %s %s -lcamlrun %s"
++          "%s -o %s %s %s %s %s %s -Wl,-Bstatic -lcamlrun -Wl,-Bdynamic %s"
+           !Clflags.c_linker
+           (Filename.quote exec_name)
+           (Clflags.std_include_flag "-I")
+--- origsrc/ocaml-3.10.2/byterun/Makefile	2007-02-23 03:29:45.000000000 -0600
++++ src/ocaml-3.10.2/byterun/Makefile	2008-05-02 07:02:00.484375000 -0500
+@@ -19,7 +19,7 @@
+ CFLAGS=-DCAML_NAME_SPACE -O $(BYTECCCOMPOPTS)
+ DFLAGS=-DCAML_NAME_SPACE -g -DDEBUG $(BYTECCCOMPOPTS)
+ 
+-OBJS=interp.o misc.o stacks.o fix_code.o startup.o main.o \
++OBJS=interp.o misc.o stacks.o fix_code.o startup.o \
+   freelist.o major_gc.o minor_gc.o memory.o alloc.o roots.o globroots.o \
+   fail.o signals.o signals_byt.o printexc.o backtrace.o \
+   compare.o ints.o floats.o str.o array.o io.o extern.o intern.o \
+@@ -37,11 +37,11 @@
+ PUBLIC_INCLUDES=alloc.h callback.h config.h custom.h fail.h intext.h \
+   memory.h misc.h mlvalues.h printexc.h signals.h compatibility.h
+ 
+-all: ocamlrun$(EXE) ld.conf
++all: ocamlrun$(EXE) libcamlrun.a ld.conf
+ 
+-ocamlrun$(EXE): libcamlrun.a prims.o
++ocamlrun$(EXE): libcamlrun.dll.a main.o
+ 	$(BYTECC) $(BYTECCCOMPOPTS) $(BYTECCLINKOPTS) -o ocamlrun$(EXE) \
+-	          prims.o libcamlrun.a $(BYTECCLIBS)
++	          main.o libcamlrun.dll.a $(BYTECCLIBS)
+ 
+ ocamlrund$(EXE): libcamlrund.a prims.o
+ 	$(BYTECC) -g $(BYTECCCOMPOPTS) $(BYTECCLINKOPTS) -o ocamlrund$(EXE) \
+@@ -49,6 +49,8 @@
+ 
+ install:
+ 	cp ocamlrun$(EXE) $(BINDIR)/ocamlrun$(EXE)
++	cp cygcamlrun.dll $(BINDIR)/cygcamlrun.dll
++	cp libcamlrun.dll.a $(LIBDIR)/libcamlrun.dll.a
+ 	cp libcamlrun.a $(LIBDIR)/libcamlrun.a
+ 	cd $(LIBDIR); $(RANLIB) libcamlrun.a
+ 	if test -d $(LIBDIR)/caml; then : ; else mkdir $(LIBDIR)/caml; fi
+@@ -61,16 +63,19 @@
+ 	echo "$(STUBLIBDIR)" >ld.conf
+ 	echo "$(LIBDIR)" >>ld.conf
+ 
+-libcamlrun.a: $(OBJS)
+-	ar rc libcamlrun.a $(OBJS)
++libcamlrun.a: $(OBJS) main.o
++	ar rc libcamlrun.a $(OBJS) main.o
+ 	$(RANLIB) libcamlrun.a
+ 
++libcamlrun.dll.a: $(OBJS) prims.o
++	$(BYTECC) -shared $(BYTECCLINKOPTS) -Wl,--enable-auto-image-base -Wl,--out-implib,libcamlrun.dll.a -o cygcamlrun.dll $(OBJS) prims.o $(BYTECCLIBS)
++
+ libcamlrund.a: $(DOBJS)
+ 	ar rc libcamlrund.a $(DOBJS)
+ 	$(RANLIB) libcamlrund.a
+ 
+ clean:
+-	rm -f ocamlrun$(EXE) ocamlrund$(EXE) *.o lib*.a
++	rm -f ocamlrun$(EXE) ocamlrund$(EXE) *.o lib*.a *.dll
+ 	rm -f primitives prims.c opnames.h jumptbl.h ld.conf
+ 	rm -f version.h
+ 
+--- origsrc/ocaml-3.10.2/configure	2008-05-02 07:01:38.906250000 -0500
++++ src/ocaml-3.10.2/configure	2008-05-02 07:02:00.500000000 -0500
+@@ -291,7 +291,9 @@
+     bytecccompopts="$bytecccompopts -D_XOPEN_SOURCE=500";;
+   gcc*,*-*-cygwin*)
+     bytecccompopts="$bytecccompopts -fno-defer-pop $gcc_warnings -U_WIN32"
++    bytecclinkopts="$bytecclinkopts -Wl,--enable-auto-import"
+     exe=".exe"
++    mathlib=""
+     ostype="Cygwin";;
+   gcc*,x86_64-*-linux*)
+     bytecccompopts="$bytecccompopts -fno-defer-pop $gcc_warnings"
+@@ -547,6 +549,9 @@
+       #sharedcccompopts="-fnocommon"
+       dl_needs_underscore=true
+       shared_libraries_supported=true;;
++    *-*-cygwin*)
++      mksharedlib="$bytecc -shared -Wl,--enable-auto-image-base -Wl,--enable-auto-import -o"
++      shared_libraries_supported=true;;
+   esac
+ fi
+ 
+--- origsrc/ocaml-3.10.2/otherlibs/bigarray/Makefile	2007-02-07 04:31:36.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/bigarray/Makefile	2008-05-02 07:02:00.515625000 -0500
+@@ -19,7 +19,7 @@
+ CFLAGS=-I../../byterun -O $(BYTECCCOMPOPTS) $(SHAREDCCCOMPOPTS)
+ CAMLC=../../ocamlcomp.sh -I ../unix
+ CAMLOPT=../../ocamlcompopt.sh -I ../unix
+-MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib
++MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib -ldopt -L../../boot
+ COMPFLAGS=-warn-error A -g
+ 
+ C_OBJS=bigarray_stubs.o mmap_unix.o
+--- origsrc/ocaml-3.10.2/otherlibs/dbm/Makefile	2004-11-29 08:53:32.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/dbm/Makefile	2008-05-02 07:02:00.546875000 -0500
+@@ -21,7 +21,7 @@
+ CC=$(BYTECC) -g
+ CAMLC=../../ocamlcomp.sh
+ CAMLOPT=../../ocamlcompopt.sh
+-MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib
++MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib -ldopt -L../../boot
+ COMPFLAGS=-warn-error A
+ 
+ CFLAGS=$(DBM_INCLUDES) -I../../byterun -O $(BYTECCCOMPOPTS) $(SHAREDCCCOMPOPTS)
+--- origsrc/ocaml-3.10.2/otherlibs/graph/Makefile	2007-01-29 06:11:16.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/graph/Makefile	2008-05-02 07:02:00.578125000 -0500
+@@ -21,7 +21,7 @@
+ CFLAGS=-I../../byterun $(X11_INCLUDES) -O $(BYTECCCOMPOPTS) $(SHAREDCCCOMPOPTS)
+ CAMLC=../../ocamlcomp.sh
+ CAMLOPT=../../ocamlcompopt.sh
+-MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib
++MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib -ldopt -L../../boot
+ COMPFLAGS=-warn-error A -g
+ 
+ OBJS=open.o draw.o fill.o color.o text.o \
+--- origsrc/ocaml-3.10.2/otherlibs/labltk/examples_labltk/Makefile	2002-12-19 07:38:29.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/labltk/examples_labltk/Makefile	2008-05-02 07:02:00.609375000 -0500
+@@ -41,10 +41,10 @@
+ .SUFFIXES : .mli .ml .cmi .cmx .cmo .opt
+ 
+ .mli.cmi:
+-	$(CAMLCOMP) $(COMPFLAGS) $<
++	$(CAMLCOMP) $(COMPFLAGS) -dllpath ../support $<
+ 
+ .ml.cmo:
+-	$(CAMLCOMP) $(COMPFLAGS) $<
++	$(CAMLCOMP) $(COMPFLAGS) -dllpath ../support $<
+ 
+ .ml.cmx:
+ 	$(CAMLOPT) -c $(COMPFLAGS) $<
+--- origsrc/ocaml-3.10.2/otherlibs/labltk/support/Makefile.common	2007-01-29 06:11:16.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/labltk/support/Makefile.common	2008-05-02 07:02:00.640625000 -0500
+@@ -23,5 +23,5 @@
+ COMPFLAGS=-g
+ LINKFLAGS=
+ CAMLOPTLIBR=$(CAMLOPT) -a
+-MKLIB=$(CAMLRUN) $(TOPDIR)/tools/ocamlmklib
++MKLIB=$(CAMLRUN) $(TOPDIR)/tools/ocamlmklib -ldopt -L$(TOPDIR)/boot
+ CAMLRUNGEN=../../boot/ocamlrun
+--- origsrc/ocaml-3.10.2/otherlibs/labltk/support/cltkFile.c	2002-04-26 07:16:17.000000000 -0500
++++ src/ocaml-3.10.2/otherlibs/labltk/support/cltkFile.c	2008-05-02 07:02:00.671875000 -0500
+@@ -16,10 +16,6 @@
+ 
+ /* $Id: ocaml-3.10.2-1.src.patch,v 1.1 2008-05-02 13:01:31 yselkowitz Exp $ */
+ 
+-#ifdef __CYGWIN__
+-#define _WIN32
+-#endif
+-
+ #ifdef _WIN32
+ #include <wtypes.h>
+ #include <winbase.h>
+--- origsrc/ocaml-3.10.2/otherlibs/labltk/tkanim/Makefile	2004-05-08 11:04:39.000000000 -0500
++++ src/ocaml-3.10.2/otherlibs/labltk/tkanim/Makefile	2008-05-02 07:02:00.703125000 -0500
+@@ -19,7 +19,7 @@
+           $(OBJS:.cmo=.cmx) $(TK_LINK)
+ 
+ libtkanim.a: $(COBJS)
+-	$(MKLIB) -o tkanim $(COBJS) $(TK_LINK)
++	$(MKLIB) -o tkanim $(COBJS) -ldopt -L../support -llabltk $(TK_LINK)
+ 
+ gifanimtest-static: all gifanimtest.cmo
+ 	$(CAMLC) -custom -o $@ -I ../lib -I ../support -I ../../unix -dllpath ../support -dllpath . unix.cma -ccopt -L. $(LIBNAME).cma tkanim.cma gifanimtest.cmo
+--- origsrc/ocaml-3.10.2/otherlibs/num/Makefile	2007-01-29 06:11:16.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/num/Makefile	2008-05-02 07:02:00.734375000 -0500
+@@ -23,7 +23,7 @@
+           -DBNG_ARCH_$(BNG_ARCH) -DBNG_ASM_LEVEL=$(BNG_ASM_LEVEL)
+ CAMLC=../../ocamlcomp.sh
+ CAMLOPT=../../ocamlcompopt.sh
+-MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib
++MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib -ldopt -L../../boot
+ COMPFLAGS=-warn-error A -g
+ 
+ CAMLOBJS=int_misc.cmo nat.cmo big_int.cmo arith_flags.cmo \
+--- origsrc/ocaml-3.10.2/otherlibs/str/Makefile	2007-01-29 06:11:16.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/str/Makefile	2008-05-02 07:02:00.765625000 -0500
+@@ -24,7 +24,7 @@
+ CAMLOPT=../../ocamlcompopt.sh
+ COMPFLAGS=-warn-error A -g
+ COBJS=strstubs.o
+-MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib
++MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib -ldopt -L../../boot
+ 
+ all: libstr.a str.cmi str.cma
+ 
+--- origsrc/ocaml-3.10.2/otherlibs/systhreads/Makefile	2007-03-06 10:02:09.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/systhreads/Makefile	2008-05-02 07:02:00.781250000 -0500
+@@ -17,7 +17,7 @@
+ 
+ CAMLC=../../ocamlcomp.sh -I ../unix
+ CAMLOPT=../../ocamlcompopt.sh -I ../unix
+-MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib
++MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib -ldopt -L../../boot
+ COMPFLAGS=-warn-error A -g
+ 
+ BYTECODE_C_OBJS=posix_b.o
+--- origsrc/ocaml-3.10.2/otherlibs/threads/Makefile	2007-02-16 03:54:55.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/threads/Makefile	2008-05-02 07:02:00.796875000 -0500
+@@ -18,7 +18,7 @@
+ CC=$(BYTECC)
+ CFLAGS=-I../../byterun -O $(BYTECCCOMPOPTS) $(SHAREDCCCOMPOPTS) -g
+ CAMLC=../../ocamlcomp.sh -I ../unix
+-MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib
++MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib -ldopt -L../../boot
+ COMPFLAGS=-warn-error A
+ 
+ C_OBJS=scheduler.o
+--- origsrc/ocaml-3.10.2/otherlibs/unix/Makefile	2007-02-07 09:49:11.000000000 -0600
++++ src/ocaml-3.10.2/otherlibs/unix/Makefile	2008-05-02 07:02:00.843750000 -0500
+@@ -22,7 +22,7 @@
+ CFLAGS=-I../../byterun -O $(BYTECCCOMPOPTS) $(SHAREDCCCOMPOPTS)
+ CAMLC=../../ocamlcomp.sh
+ CAMLOPT=../../ocamlcompopt.sh
+-MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib
++MKLIB=../../boot/ocamlrun ../../tools/ocamlmklib -ldopt -L../../boot
+ COMPFLAGS=-warn-error A -g
+ 
+ OBJS=accept.o access.o addrofstr.o alarm.o bind.o chdir.o chmod.o \
+--- origsrc/ocaml-3.10.2/tools/ocamlmklib.mlp	2007-02-07 04:31:36.000000000 -0600
++++ src/ocaml-3.10.2/tools/ocamlmklib.mlp	2008-05-02 07:02:00.875000000 -0500
+@@ -200,12 +200,13 @@
+       let retcode = command
+         (mkdll (prepostfix "dll" !output_c ext_dll)
+                !implib
+-               (sprintf "%s %s %s %s %s"
++               (sprintf "%s %s %s %s %s %s -lcamlrun"
+                     (String.concat " " !c_objs)
+                     (String.concat " " !c_opts)
+                     (String.concat " " !ld_opts)
+                     (make_rpath mksharedlibrpath)
+-                    (String.concat " " !c_libs)) "") in
++                    (String.concat " " !c_libs)
++                    ("-L" ^ libdir)) "") in
+       if retcode <> 0 then if !failsafe then dynlink := false else exit 2
+     end;
+     safe_remove (prepostfix "lib" !output_c ext_lib);
