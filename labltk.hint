@@ -1,5 +1,5 @@
 category: Interpreters OCaml Tcl
-requires: cygwin ocaml libX11_6 tcl tk
+requires: ocaml libX11_6 tcl tk
 external-source: ocaml
 sdesc: "OCaml Tcl/Tk bindings"
 ldesc: "Objective Caml is the most popular variant of the Caml language. 

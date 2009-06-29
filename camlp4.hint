@@ -1,5 +1,5 @@
 category: Interpreters OCaml
-requires: cygwin ocaml
+requires: ocaml
 external-source: ocaml
 sdesc: "OCaml Pre-Processor Pretty Printer"
 ldesc: "Objective Caml is the most popular variant of the Caml language. 
