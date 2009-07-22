@@ -1,29 +1,31 @@
 DESCRIPTION="Objective Caml interpreter"
 HOMEPAGE="http://caml.inria.fr/ocaml/"
 SRC_URI="http://caml.inria.fr/pub/distrib/ocaml-${PV_MAJ_MIN}/${P}.tar.bz2"
-PATCH_URI="mirror://portage/dev-lang/${PN}/files/${PN}-3.10.0-configure.patch
-		   mirror://portage/dev-lang/${PN}/files/${PN}-3.10.0-call-ld-with-proper-ldflags.patch"
+PATCH_URI="3.11.1-flexdll.patch
+           3.11.1-labltk.patch
+           3.11.1-libcamlrun_shared.patch"
 
 OCAML_LIBDIR=/usr/lib/ocaml/${PV_MAJ_MIN}
 
 PKG_NAMES="${PN} ${PN}-camlp4 ${PN}-labltk"
 PKG_HINTS="setup camlp4 labltk"
-PKG_CONTENTS[0]="--exclude=*camlp4* --exclude=labltk --exclude=dll*tk*.so usr/"
-PKG_CONTENTS[1]="usr/bin/*camlp4* ${OCAML_LIBDIR#/}/camlp4/"
-PKG_CONTENTS[2]="usr/bin/labltk ${OCAML_LIBDIR#/}/labltk/
-                 ${OCAML_LIBDIR#/}/stublibs/dll*tk*.so"
+ocaml_CONTENTS="--exclude=*camlp4* --exclude=labltk --exclude=dll*tk*.so usr/"
+ocaml_camlp4_CONTENTS="usr/bin/*camlp4* ${OCAML_LIBDIR#/}/camlp4/"
+ocaml_labltk_CONTENTS="usr/bin/labltk ${OCAML_LIBDIR#/}/labltk/
+                       ${OCAML_LIBDIR#/}/stublibs/dll*tk*.so"
 
 src_compile() {
 	lndirs
 	cd ${B}
 	./configure \
-		--prefix /usr \
-		--bindir /usr/bin \
-		--libdir ${OCAML_LIBDIR} \
-		--mandir /usr/share/man \
-		--with-pthread \
+		-prefix /usr \
+		-bindir /usr/bin \
+		-libdir ${OCAML_LIBDIR} \
+		-mandir /usr/share/man \
+		-cc "${CC}" \
+		-with-pthread \
 		|| error "configure failed"
-	cygmake -j1 world opt opt.opt
+	cygmake -j1 world opt opt.opt ocamlnat
 	cygmake -C emacs ocamltags
 }
 
@@ -38,8 +40,10 @@ src_install() {
 
 	cygmake -j1 -C emacs install-ocamltags simple-install \
 		BINDIR=${D}/usr/bin \
-		EMACSDIR=${D}/usr/share/emacs/site-lisp \
-		NOCOMPILE=true
+		EMACSDIR=${D}/usr/share/emacs/site-lisp
+
+	# http://alain.frisch.fr/natdynlink.html#topl
+	dobin ocamlnat.exe
 
 	# Install the compiler libs
 	insinto ${OCAML_LIBDIR}/compiler-libs

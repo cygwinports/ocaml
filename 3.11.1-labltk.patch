@@ -1,0 +1,24 @@
+--- origsrc/ocaml-3.11.1/otherlibs/labltk/support/cltkFile.c	2002-04-26 07:16:17.000000000 -0500
++++ src/ocaml-3.11.1/otherlibs/labltk/support/cltkFile.c	2009-07-21 02:08:04.506567400 -0500
+@@ -16,10 +16,6 @@
+ 
+ /* $Id: cltkFile.c,v 1.12 2002/04/26 12:16:17 furuse Exp $ */
+ 
+-#ifdef __CYGWIN__
+-#define _WIN32
+-#endif
+-
+ #ifdef _WIN32
+ #include <wtypes.h>
+ #include <winbase.h>
+--- origsrc/ocaml-3.11.1/otherlibs/labltk/tkanim/Makefile	2009-04-30 09:24:53.000000000 -0500
++++ src/ocaml-3.11.1/otherlibs/labltk/tkanim/Makefile	2009-07-21 11:38:04.829430300 -0500
+@@ -20,7 +20,7 @@ tkanim.cmxa: $(OBJS:.cmo=.cmx)
+ 	$(MKLIB) -ocamlopt '$(CAMLOPTB)' -o tkanim $(OBJS:.cmo=.cmx)
+ 
+ libtkanim.$(A): $(COBJS)
+-	$(MKLIB) -o tkanim $(COBJS)
++	$(MKLIB) -o tkanim $(COBJS) $(TK_LINK)
+ 
+ gifanimtest-static$(EXE): all gifanimtest.cmo
+ 	$(CAMLC) -custom -o $@ -I ../lib -I ../support -I ../../win32unix -I ../../unix -dllpath ../support -dllpath . unix.cma -ccopt -L. $(LIBNAME).cma tkanim.cma gifanimtest.cmo

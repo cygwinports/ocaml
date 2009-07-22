@@ -1,0 +1,33 @@
+--- origsrc/ocaml-3.11.1/byterun/Makefile	2009-05-25 07:25:25.000000000 -0500
++++ src/ocaml-3.11.1/byterun/Makefile	2009-07-21 16:59:57.831069300 -0500
+@@ -23,7 +23,7 @@ DOBJS=$(OBJS:.o=.d.o) instrtrace.d.o
+ PICOBJS=$(OBJS:.o=.pic.o)
+ 
+ SHARED_LIBS_TMP=$(SUPPORTS_SHARED_LIBRARIES:%false=)
+-SHARED_LIBS_DEPS=$(SHARED_LIBS_TMP:%true=libcamlrun_shared.so)
++SHARED_LIBS_DEPS=$(SHARED_LIBS_TMP:%true=libcamlrun_shared.dll.a)
+ 
+ all:: $(SHARED_LIBS_DEPS)
+ 
+@@ -43,15 +43,16 @@ libcamlrund.a: $(DOBJS)
+ 	ar rc libcamlrund.a $(DOBJS)
+ 	$(RANLIB) libcamlrund.a
+ 
+-libcamlrun_shared.so: $(PICOBJS)
+-	$(MKDLL) -o libcamlrun_shared.so $(PICOBJS) $(BYTECCLIBS)
++libcamlrun_shared.dll.a: $(PICOBJS)
++	$(MKDLL) -o cygcamlrun_shared.dll -link -Wl,--out-implib,libcamlrun_shared.dll.a $(PICOBJS) $(BYTECCLIBS)
+ 
+ install::
+-	if test -f libcamlrun_shared.so; then \
+-	  cp libcamlrun_shared.so $(LIBDIR)/libcamlrun_shared.so; fi
++	if test -f libcamlrun_shared.dll.a; then \
++	  cp cygcamlrun_shared.dll $(BINDIR); \
++	  cp libcamlrun_shared.dll.a $(LIBDIR)/libcamlrun_shared.dll.a; fi
+ 
+ clean::
+-	rm -f libcamlrun_shared.so
++	rm -f libcamlrun_shared.dll.a
+ 
+ 
+ .SUFFIXES: .d.o .pic.o
