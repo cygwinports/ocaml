@@ -1,0 +1,11 @@
+--- origsrc/ocaml-3.11.2/configure	2009-11-17 07:28:44.000000000 -0600
++++ src/ocaml-3.11.2/configure	2010-02-14 20:22:59.897184100 -0600
+@@ -304,7 +304,7 @@ case "$bytecc,$host" in
+     bytecccompopts="-D_XOPEN_SOURCE=500";;
+   gcc*,*-*-cygwin*)
+     bytecccompopts="-fno-defer-pop $gcc_warnings -U_WIN32"
+-    dllccompopts="-D_WIN32 -DCAML_DLL"
++    dllccompopts="-DCAML_DLL"
+     if test $withsharedlibs = yes; then
+       flexlink="flexlink -chain cygwin -merge-manifest"
+       flexdir=`$flexlink -where | dos2unix`
