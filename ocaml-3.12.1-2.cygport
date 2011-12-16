@@ -2,23 +2,23 @@ DESCRIPTION="Objective Caml interpreter"
 HOMEPAGE="http://caml.inria.fr/ocaml/"
 SRC_URI="http://caml.inria.fr/pub/distrib/ocaml-${PV_MAJ_MIN}/${P}.tar.bz2"
 PATCH_URI="
-	3.11.2-not-win32.patch
 	3.12.0-labltk.patch
 	3.11.1-libcamlrun_shared.patch
-	3.11.2-exeext.patch
+	3.12.1-bfd.patch
+	3.12.1-not-win32.patch
 "
 
 OCAML_LIBDIR=/usr/lib/ocaml
 
-PKG_NAMES="${PN} ${PN}-camlp4 ${PN}-compiler-libs ${PN}-labltk emacs-caml"
-PKG_HINTS="setup camlp4 compiler-libs labltk emacs"
-ocaml_CONTENTS="--exclude=*camlp4* --exclude=compiler-libs --exclude=labltk
+PKG_NAMES="${PN} ${PN}-base ${PN}-camlp4 ${PN}-compiler-libs ${PN}-labltk emacs-ocaml"
+PKG_HINTS="setup base camlp4 compiler-libs labltk emacs"
+ocaml_base_CONTENTS="--exclude=*camlp4* --exclude=compiler-libs --exclude=labltk
                 --exclude=dll*tk*.so --exclude=emacs usr/"
 ocaml_camlp4_CONTENTS="usr/bin/*camlp4* ${OCAML_LIBDIR#/}/camlp4/"
 ocaml_compiler_libs_CONTENTS="${OCAML_LIBDIR#/}/compiler-libs/"
 ocaml_labltk_CONTENTS="usr/bin/labltk ${OCAML_LIBDIR#/}/labltk/
                        ${OCAML_LIBDIR#/}/stublibs/dll*tk*.so"
-emacs_caml_CONTENTS="usr/share/emacs/"
+emacs_ocaml_CONTENTS="usr/share/emacs/"
 
 src_compile() {
 	lndirs
@@ -31,7 +31,7 @@ src_compile() {
 		-cc "${CC}" \
 		-with-pthread \
 		|| error "configure failed"
-	cygmake -j1 world opt opt.opt # ocamlnat
+	cygmake -j1 world opt opt.opt
 	cygmake -C emacs ocamltags
 }
 
@@ -48,9 +48,6 @@ src_install() {
 		BINDIR=${D}/usr/bin \
 		EMACSDIR=${D}/usr/share/emacs/site-lisp
 
-	# http://alain.frisch.fr/natdynlink.html#topl
-#	dobin ocamlnat.exe
-
 	# Install the compiler libs
 	for d in parsing typing utils
 	do
@@ -62,11 +59,7 @@ src_install() {
 	dodir /usr/include
 	dosym ../${OCAML_LIBDIR#/usr/}/caml /usr/include/caml
 
-	# Remove ${D} from ld.conf, as the buildsystem isn't $(DESTDIR) aware
-	sed -i -e "s:${D}::g" ${D}${OCAML_LIBDIR}/ld.conf
-
 	dodoc Updating
-
-	# These are false positives with the 'Caml1999X008' file magic test
-	strip ${D}/usr/bin/*.{dll,opt.exe}
 }
+
+KEEPDIRS="${OCAML_LIBDIR}/ocamldoc/custom"
