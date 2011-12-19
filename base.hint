@@ -1,5 +1,5 @@
 category: Interpreters OCaml
-requires: flexdll gcc4-core libgcc1 libgdbm4 libintl8 libncurses10 libX11_6
+requires: flexdll gcc4-core libgcc1 libgdbm4 libncurses10 libX11_6
 external-source: ocaml
 sdesc: "Objective Caml runtime"
 ldesc: "Objective Caml is the most popular variant of the Caml language. 

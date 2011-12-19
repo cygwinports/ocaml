@@ -4,7 +4,6 @@ SRC_URI="http://caml.inria.fr/pub/distrib/ocaml-${PV_MAJ_MIN}/${P}.tar.bz2"
 PATCH_URI="
 	3.12.0-labltk.patch
 	3.11.1-libcamlrun_shared.patch
-	3.12.1-bfd.patch
 	3.12.1-not-win32.patch
 "
 
