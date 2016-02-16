@@ -1,0 +1,40 @@
+--- origsrc/ocaml-4.02.3/byterun/Makefile	2015-05-10 07:45:57.000000000 +0200
++++ src/ocaml-4.02.3/byterun/Makefile	2015-12-29 14:27:33.717106500 +0100
+@@ -41,15 +41,17 @@
+ all-noshared:
+ .PHONY: all-noshared
+ 
+-all-shared: libcamlrun_pic.a libcamlrun_shared.so
++all-shared: libcamlrun_pic.a libcamlrun_shared.dll.a
+ .PHONY: all-shared
+ 
+ libcamlrun_pic.a: $(PICOBJS)
+ 	ar rc libcamlrun_pic.a $(PICOBJS)
+ 	$(RANLIB) libcamlrun_pic.a
+ 
+-libcamlrun_shared.so: $(PICOBJS)
+-	$(MKDLL) -o libcamlrun_shared.so $(PICOBJS) $(BYTECCLIBS)
++libcamlrun_shared.dll.a: $(PICOBJS)
++	$(MKDLL) -o libcamlrun_shared.dll \
++	         -link -Wl,--out-implib,libcamlrun_shared.dll.a \
++	         $(PICOBJS) $(BYTECCLIBS)
+ 
+ install:: install-$(SHARED)
+ 
+@@ -57,13 +59,14 @@
+ .PHONY: install-noshared
+ 
+ install-shared:
+-	cp libcamlrun_shared.so $(INSTALL_LIBDIR)/libcamlrun_shared.so
++	cp libcamlrun_shared.dll $(INSTALL_BINDIR)/libcamlrun_shared.dll
++	cp libcamlrun_shared.dll.a $(INSTALL_LIBDIR)/libcamlrun_shared.dll.a
+ 	cp libcamlrun_pic.a $(INSTALL_LIBDIR)/libcamlrun_pic.a
+ 	cd $(INSTALL_LIBDIR); $(RANLIB) libcamlrun_pic.a
+ .PHONY: install-shared
+ 
+ clean::
+-	rm -f libcamlrun_shared.so libcamlrun_pic.a
++	rm -f libcamlrun_shared.dll libcamlrun_shared.dll.a libcamlrun_pic.a
+ 
+ %.d.o: %.c
+ 	$(CC) -c $(DFLAGS) $< -o $@
