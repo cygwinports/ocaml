@@ -1,6 +1,7 @@
 NAME="ocaml"
 VERSION=4.02.3
-RELEASE=1
+RELEASE=2
+CATEGORY="OCaml"
 SUMMARY="The OCaml compiler and runtime"
 DESCRIPTION="OCaml is a fast modern type-inferring functional programming
 language descended from the ML (Meta Language) family, featuring objects,
@@ -16,7 +17,7 @@ PATCH_URI="
 OCAML_LIBDIR=/usr/lib/ocaml
 KEEPDIRS="${D}/usr/lib/ocaml/ocamldoc/custom"
 
-PKG_NAMES="${PN} ${PN}-base ${PN}-compiler-libs emacs-ocaml"
+PKG_NAMES="${NAME} ${NAME}-base ${NAME}-compiler-libs emacs-ocaml"
 ocaml_REQUIRES="ocaml-base"
 ocaml_base_CONTENTS="--exclude=compiler-libs --exclude=emacs usr/"
 ocaml_compiler_libs_CONTENTS="${OCAML_LIBDIR#/}/compiler-libs/"
