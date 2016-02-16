@@ -1,0 +1,61 @@
+NAME="ocaml"
+VERSION=4.01.0
+RELEASE=2
+SUMMARY="The OCaml compiler and runtime"
+DESCRIPTION="OCaml is a fast modern type-inferring functional programming
+language descended from the ML (Meta Language) family, featuring objects,
+modules, and a high-performance native-code compiler. The OCaml compiler is
+developed by a worldwide distributed team coordinated by the Gallium
+project-team at Inria Paris-Rocquencourt."
+HOMEPAGE="http://caml.inria.fr/ocaml/"
+SRC_URI="http://caml.inria.fr/pub/distrib/ocaml-${VERSION%.*}/ocaml-${VERSION}.tar.bz2"
+PATCH_URI="
+	ocaml-4.01.0-2-libcamlrun_shared.patch
+	ocaml-4.01.0-2-port-to-cygwin64.patch
+"
+
+OCAML_LIBDIR=/usr/lib/ocaml
+KEEPDIRS="${D}/usr/lib/ocaml/ocamldoc/custom"
+
+PKG_NAMES="${NAME} ${NAME}-base ${NAME}-camlp4 ${NAME}-compiler-libs emacs-ocaml"
+ocaml_REQUIRES="ocaml-base ocaml-camlp4"
+ocaml_base_CONTENTS="--exclude=*camlp4* --exclude=compiler-libs
+                 --exclude=emacs usr/"
+ocaml_camlp4_CONTENTS="usr/bin/*camlp4* ${OCAML_LIBDIR#/}/camlp4/"
+ocaml_compiler_libs_CONTENTS="${OCAML_LIBDIR#/}/compiler-libs/"
+emacs_ocaml_CONTENTS="usr/share/emacs/"
+
+src_compile() {
+	lndirs
+	cd ${B}
+	./configure \
+		-bindir /usr/bin \
+		-libdir ${OCAML_LIBDIR} \
+		-mandir /usr/share/man \
+		|| error "configure failed"
+	cygmake -j1 world opt opt.opt
+	cygmake -C emacs ocamltags
+}
+
+src_test() { :
+	cd ${B}/testsuite
+	cygmake -j1 all
+}
+
+src_install() {
+	cd ${B}
+	cyginstall -j1 \
+		BINDIR=${D}/usr/bin \
+		LIBDIR=${D}${OCAML_LIBDIR} \
+		MANDIR=${D}/usr/share/man
+
+	cygmake -j1 -C emacs install-ocamltags simple-install \
+		BINDIR=${D}/usr/bin \
+		EMACSDIR=${D}/usr/share/emacs/site-lisp
+
+	# Symlink the headers to the right place
+	dodir /usr/include
+	dosym ../${OCAML_LIBDIR#/usr/}/caml /usr/include/caml
+
+	dodoc Updating
+}

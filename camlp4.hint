@@ -1,9 +1,0 @@
-category: Interpreters OCaml
-requires: ocaml
-external-source: ocaml
-sdesc: "OCaml Pre-Processor Pretty Printer"
-ldesc: "Objective Caml is the most popular variant of the Caml language. 
-From a language standpoint, it extends the core Caml language with a 
-fully-fledged object-oriented layer, as well as a powerful module 
-system, all connected by a sound, polymorphic type system featuring type 
-inference."
