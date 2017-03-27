@@ -1,6 +1,6 @@
---- origsrc/ocaml-4.02.3/asmrun/Makefile	2015-05-19 04:48:34.000000000 -0500
-+++ src/ocaml-4.02.3/asmrun/Makefile	2016-02-15 20:44:37.370060800 -0600
-@@ -64,15 +64,16 @@ libasmrunp.a: $(POBJS)
+--- origsrc/ocaml-4.04.0/asmrun/Makefile	2016-11-04 11:08:24.000000000 -0500
++++ src/ocaml-4.04.0/asmrun/Makefile	2017-03-27 11:49:33.580721200 -0500
+@@ -82,16 +82,17 @@ libasmrunp.a: $(POBJS)
  
  all-noshared:
  
@@ -9,7 +9,7 @@
  
  libasmrun_pic.a: $(PICOBJS)
  	rm -f libasmrun_pic.a
- 	ar rc libasmrun_pic.a $(PICOBJS)
+ 	$(ARCMD) rc libasmrun_pic.a $(PICOBJS)
  	$(RANLIB) libasmrun_pic.a
  
 -libasmrun_shared.so: $(PICOBJS)
@@ -20,20 +20,20 @@
 +INSTALL_BINDIR=$(DESTDIR)$(BINDIR)
  INSTALL_LIBDIR=$(DESTDIR)$(LIBDIR)
  
- install: install-default install-$(RUNTIMED) install-$(PROFILING) install-$(SHARED)
-@@ -107,7 +107,8 @@ install-noshared:
- install-shared:
+ install::
+@@ -125,7 +126,8 @@ ifeq "$(SHARED)" "shared"
+ install::
  	cp libasmrun_pic.a $(INSTALL_LIBDIR)/libasmrun_pic.a
  	cd $(INSTALL_LIBDIR); $(RANLIB) libasmrunp.a
 -	cp libasmrun_shared.so $(INSTALL_LIBDIR)/libasmrun_shared.so
 +	cp cygasmrun_shared.dll $(INSTALL_BINDIR)/cygasmrun_shared.dll
 +	cp libasmrun_shared.dll.a $(INSTALL_LIBDIR)/libasmrun_shared.dll.a
- .PHONY: install-prof
+ endif
  
- power-bsd_elf.S: power-elf.S
---- origsrc/ocaml-4.02.3/byterun/Makefile	2015-05-10 07:45:57.000000000 +0200
-+++ src/ocaml-4.02.3/byterun/Makefile	2015-12-29 14:27:33.717106500 +0100
-@@ -41,15 +41,15 @@
+ main.c: ../byterun/main.c
+--- origsrc/ocaml-4.04.0/byterun/Makefile	2016-11-04 11:08:24.000000000 -0500
++++ src/ocaml-4.04.0/byterun/Makefile	2017-03-27 11:51:01.772766000 -0500
+@@ -52,15 +52,15 @@ libcamlruni.a: $(IOBJS)
  all-noshared:
  .PHONY: all-noshared
  
@@ -42,7 +42,7 @@
  .PHONY: all-shared
  
  libcamlrun_pic.a: $(PICOBJS)
- 	ar rc libcamlrun_pic.a $(PICOBJS)
+ 	$(ARCMD) rc libcamlrun_pic.a $(PICOBJS)
  	$(RANLIB) libcamlrun_pic.a
  
 -libcamlrun_shared.so: $(PICOBJS)
@@ -52,15 +52,15 @@
  
  install:: install-$(SHARED)
  
-@@ -57,13 +57,14 @@
+@@ -68,13 +68,14 @@ install-noshared:
  .PHONY: install-noshared
  
  install-shared:
--	cp libcamlrun_shared.so $(INSTALL_LIBDIR)/libcamlrun_shared.so
-+	cp cygcamlrun_shared.dll $(INSTALL_BINDIR)/cygcamlrun_shared.dll
-+	cp libcamlrun_shared.dll.a $(INSTALL_LIBDIR)/libcamlrun_shared.dll.a
- 	cp libcamlrun_pic.a $(INSTALL_LIBDIR)/libcamlrun_pic.a
- 	cd $(INSTALL_LIBDIR); $(RANLIB) libcamlrun_pic.a
+-	cp libcamlrun_shared.so "$(INSTALL_LIBDIR)/libcamlrun_shared.so"
++	cp cygcamlrun_shared.dll "$(INSTALL_BINDIR)/cygcamlrun_shared.dll"
++	cp libcamlrun_shared.dll.a "$(INSTALL_LIBDIR)/libcamlrun_shared.dll.a"
+ 	cp libcamlrun_pic.a "$(INSTALL_LIBDIR)/libcamlrun_pic.a"
+ 	cd "$(INSTALL_LIBDIR)"; $(RANLIB) libcamlrun_pic.a
  .PHONY: install-shared
  
  clean::

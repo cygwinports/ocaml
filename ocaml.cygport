@@ -1,6 +1,6 @@
 NAME="ocaml"
-VERSION=4.02.3
-RELEASE=2
+VERSION=4.04.0
+RELEASE=1
 CATEGORY="OCaml"
 SUMMARY="The OCaml compiler and runtime"
 DESCRIPTION="OCaml is a fast modern type-inferring functional programming
@@ -11,16 +11,17 @@ project-team at Inria Paris-Rocquencourt."
 HOMEPAGE="https://ocaml.org/"
 SRC_URI="http://caml.inria.fr/pub/distrib/ocaml-${VERSION%.*}/ocaml-${VERSION}.tar.xz"
 PATCH_URI="
-	ocaml-4.02.3-1-libcamlrun_shared.patch
+	4.04.0-libcamlrun_shared.patch
 "
 
 OCAML_LIBDIR=/usr/lib/ocaml
 KEEPDIRS="${D}/usr/lib/ocaml/ocamldoc/custom"
 
-PKG_NAMES="${NAME} ${NAME}-base ${NAME}-compiler-libs emacs-ocaml"
-ocaml_REQUIRES="ocaml-base"
-ocaml_base_CONTENTS="--exclude=compiler-libs --exclude=emacs usr/"
+PKG_NAMES="${NAME} ${NAME}-compiler-libs ${NAME}-source emacs-ocaml"
+ocaml_OBSOLETES="ocaml-base"
+ocaml_CONTENTS="--exclude=compiler-libs --exclude=emacs --exclude=*.ml usr/"
 ocaml_compiler_libs_CONTENTS="${OCAML_LIBDIR#/}/compiler-libs/"
+ocaml_source_CONTENTS="${OCAML_LIBDIR#/}/*.ml"
 emacs_ocaml_CONTENTS="usr/share/emacs/"
 
 src_compile() {
