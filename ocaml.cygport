@@ -1,5 +1,5 @@
 NAME="ocaml"
-VERSION=4.04.0
+VERSION=4.04.2
 RELEASE=1
 CATEGORY="OCaml"
 SUMMARY="The OCaml compiler and runtime"
@@ -11,6 +11,8 @@ project-team at Inria Paris-Rocquencourt."
 HOMEPAGE="https://ocaml.org/"
 SRC_URI="http://caml.inria.fr/pub/distrib/ocaml-${VERSION%.*}/ocaml-${VERSION}.tar.xz"
 PATCH_URI="
+	http://pkgs.fedoraproject.org/cgit/rpms/ocaml.git/plain/0003-configure-Allow-user-defined-C-compiler-flags.patch
+	http://pkgs.fedoraproject.org/cgit/rpms/ocaml.git/plain/0004-Don-t-rewrite-Werror.patch
 	4.04.0-libcamlrun_shared.patch
 "
 
@@ -20,6 +22,7 @@ KEEPDIRS="${D}/usr/lib/ocaml/ocamldoc/custom"
 PKG_NAMES="${NAME} ${NAME}-compiler-libs ${NAME}-source emacs-ocaml"
 ocaml_OBSOLETES="ocaml-base"
 ocaml_CONTENTS="--exclude=compiler-libs --exclude=emacs --exclude=*.ml usr/"
+ocaml_compiler_libs_REQUIRES=${NAME}
 ocaml_compiler_libs_CONTENTS="${OCAML_LIBDIR#/}/compiler-libs/"
 ocaml_source_CONTENTS="${OCAML_LIBDIR#/}/*.ml"
 emacs_ocaml_CONTENTS="usr/share/emacs/"
